@@ -72,7 +72,6 @@
 <body>
 
     <script>
-        // URL ของ Google Apps Script Web App ของคุณ
         const API_URL = "https://script.google.com/macros/s/AKfycbzM51QS8jSNvoKTf2grZSdjro7MM13kcHgL8yhSDxTWEjGD0Bl3htO9gzA1f5IQMts/exec"; 
     </script>
 
@@ -127,7 +126,7 @@
                   <label>ตำแหน่ง (GPS)</label>
                   <div class="input-group">
                     <input type="text" class="form-control" id="locationUrl" name="locationUrl" placeholder="กดปุ่มเพื่อระบุพิกัด" readonly required>
-                    <button type="button" class="btn btn-info text-white" onclick="getGPS()"><i class="fas fa-map-marker-alt"></i> พิกัด</button>
+                    <button type="button" class="btn btn-info text-white" onclick="getGPS()"><i class="fas fa-map-marker-alt"></i> ระบุพิกัด</button>
                   </div>
                   <small class="text-muted">หาก GPS ไม่ขึ้น ให้พิมพ์จุดสังเกตในช่องรายละเอียด</small>
                 </div>
@@ -243,7 +242,6 @@
           document.getElementById('loading').style.display = 'flex';
           payload.action = action;
           try {
-              // POST Method to GAS Web App
               const response = await fetch(API_URL, {
                   method: 'POST',
                   body: JSON.stringify(payload)
@@ -307,6 +305,7 @@
         });
       }
 
+      // *** ฟังก์ชันแก้ไขแล้ว: ระบุพิกัด GPS ***
       function getGPS() {
         if (navigator.geolocation) {
           document.getElementById('loading').style.display = 'flex';
@@ -314,12 +313,15 @@
             (position) => {
               var lat = position.coords.latitude;
               var long = position.coords.longitude;
-              var link = `http://googleusercontent.com/maps.google.com/3{lat},${long}`;
+              // ใช้ Format มาตรฐานของ Google Maps
+              var link = `https://www.google.com/maps?q=${lat},${long}`;
+              
               document.getElementById('locationUrl').value = link;
               document.getElementById('loading').style.display = 'none';
             },
             (error) => {
-              alert("ไม่สามารถดึงพิกัดได้ กรุณาเปิด GPS หรือพิมพ์ระบุตำแหน่ง");
+              console.error(error);
+              alert("ไม่สามารถดึงพิกัดได้ (กรุณาเปิด GPS หรือกดอนุญาตสิทธิ์ Location)");
               document.getElementById('loading').style.display = 'none';
             }
           );
@@ -375,7 +377,7 @@
                      <strong>${r.id}</strong>
                      <span class="badge ${colorClass}">${r.status}</span>
                   </div>
-                  <p class="mb-0 text-muted small">${new Date(r.timestamp).toLocaleString('th-TH')}</p>
+                  <p class="mb-0 text-muted small">${r.timestamp}</p>
                   <p class="mb-0">${r.facility}</p>
                </div>`;
             });
@@ -433,7 +435,11 @@
          var today = new Date();
 
          allAdminData.forEach(item => {
+            // Check 14 Days alert
+            // แปลงวันที่จาก String กลับเป็น Date Object เพื่อคำนวณ
             var reportedDate = new Date(item.timestamp);
+            if(isNaN(reportedDate)) reportedDate = new Date(); // Fallback
+
             var diffTime = Math.abs(today - reportedDate);
             var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
             var isAlert = diffDays > 14;
