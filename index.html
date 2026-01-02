@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Health Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#6b21a8', secondary: '#fbbf24' } } }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <script>
+        // ใส่ API URL ของคุณให้เรียบร้อยแล้วครับ
+        const API_URL = "https://script.google.com/macros/s/AKfycbzM51QS8jSNvoKTf2grZSdjro7MM13kcHgL8yhSDxTWEjGD0Bl3htO9gzA1f5IQMts/exec"; 
+    </script>
+
+    <div id="loading" class="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center hidden">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p class="mt-4 text-primary font-bold">กำลังเชื่อมต่อฐานข้อมูล...</p>
+    </div>
+
+    <nav class="bg-primary text-white p-4 shadow sticky top-0 z-40">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="font-bold text-lg flex items-center gap-2 cursor-pointer" onclick="showPage('home')">
+                <span class="material-icons text-secondary">health_and_safety</span> Smart Health
+            </div>
+            <button id="logoutBtn" onclick="doLogout()" class="hidden text-xs bg-red-500 hover:bg-red-600 px-3 py-1 rounded transition">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 max-w-lg min-h-screen">
+
+        <div id="page-home" class="page-section flex flex-col gap-4 py-10">
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-4">ระบบรายงานสถานบริการสุขภาพ</h1>
+            
+            <button onclick="showPage('report')" class="bg-white border-2 border-primary text-primary p-6 rounded-xl shadow-lg hover:bg-purple-50 flex items-center justify-center gap-3 text-xl font-bold transition transform active:scale-95">
+                <span class="material-icons text-3xl">edit_note</span> แจ้งรายงาน
+            </button>
+
+            <button onclick="showPage('track')" class="bg-white border-2 border-gray-400 text-gray-700 p-4 rounded-xl shadow-lg hover:bg-gray-50 flex items-center justify-center gap-3 text-lg font-bold transition transform active:scale-95">
+                <span class="material-icons text-2xl">search</span> ติดตามเรื่อง
+            </button>
+
+            <div class="text-center mt-6">
+                <button onclick="checkAdmin()" class="text-sm text-gray-400 underline hover:text-primary">เจ้าหน้าที่</button>
+            </div>
+        </div>
+
+        <div id="page-report" class="page-section hidden bg-white p-6 rounded-lg shadow-md">
+            <div class="flex justify-between mb-4 border-b pb-2">
+                <h2 class="text-xl font-bold text-primary">แบบฟอร์มรายงาน</h2>
+                <button onclick="showPage('home')"><span class="material-icons text-gray-400 hover:text-gray-600">close</span></button>
+            </div>
+            <form onsubmit="submitReport(event)">
+                <label class="block mb-2 font-bold text-sm text-gray-700">ชื่อสถานบริการ</label>
+                <input type="text" name="facility" required class="w-full border p-2 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                
+                <label class="block mb-2 font-bold text-sm text-gray-700">พิกัด</label>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="mapLink" name="mapLink" required readonly class="w-full border p-2 rounded bg-gray-50 text-xs text-gray-500">
+                    <button type="button" onclick="getGPS()" class="bg-secondary text-primary px-3 rounded text-sm font-bold hover:bg-yellow-400 transition">ระบุ GPS</button>
+                </div>
+
+                <label class="block mb-2 font-bold text-sm text-gray-700">รายละเอียด</label>
+                <textarea name="details" required class="w-full border p-2 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-primary" rows="3"></textarea>
+
+                <label class="block mb-2 font-bold text-sm text-gray-700">ชื่อผู้แจ้ง</label>
+                <input type="text" id="reporterName" name="reporter" required class="w-full border p-2 rounded mb-6 focus:outline-none focus:ring-2 focus:ring-primary">
+
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded font-bold hover:bg-purple-800 shadow transition">ส่งข้อมูล</button>
+            </form>
+        </div>
+
+        <div id="page-track" class="page-section hidden">
+            <div class="flex items-center gap-2 mb-4 bg-white p-2 rounded shadow">
+                <input type="text" id="searchInput" placeholder="ค้นหา รหัส (HS-xxxx) หรือ ชื่อ..." class="flex-1 p-2 outline-none text-sm">
+                <button onclick="doSearch()" class="bg-primary text-white p-2 rounded hover:bg-purple-800 transition"><span class="material-icons">search</span></button>
+            </div>
+            <div id="trackResults" class="flex flex-col gap-3 pb-20"></div>
+            <button onclick="showPage('home')" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow text-sm">กลับหน้าหลัก</button>
+        </div>
+
+        <div id="page-login" class="page-section hidden bg-white p-8 rounded shadow text-center mt-10">
+            <h2 class="text-xl font-bold mb-6 text-primary">Admin Login</h2>
+            <input type="text" id="u" placeholder="User" class="w-full border p-2 mb-3 rounded focus:outline-none focus:border-primary">
+            <input type="password" id="p" placeholder="Pass" class="w-full border p-2 mb-6 rounded focus:outline-none focus:border-primary">
+            <button onclick="doLogin()" class="w-full bg-primary text-white py-2 rounded font-bold hover:bg-purple-800 transition">Login</button>
+            <button onclick="showPage('home')" class="mt-4 text-sm text-gray-400 hover:text-gray-600 underline">ยกเลิก</button>
+        </div>
+
+        <div id="page-admin" class="page-section hidden">
+            <h2 class="text-xl font-bold mb-4 text-primary bg-white p-2 rounded shadow-sm inline-block">รายการแจ้งเหตุ</h2>
+            <div id="adminList" class="flex flex-col gap-3 pb-20"></div>
+             <button onclick="showPage('home')" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow text-sm">กลับหน้าหลัก</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Helper Functions ---
+        function showPage(id) {
+            document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('page-' + id).classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
+
+        function loading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        async function callAPI(action, data = {}) {
+            loading(true);
+            try {
+                // ใช้ method POST และส่ง action ผ่าน Query String
+                const response = await fetch(API_URL + "?action=" + action, {
+                    method: 'POST',
+                    mode: 'cors', // สำคัญมาก
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ใช้ text/plain เพื่อเลี่ยง Preflight Request
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                loading(false);
+                return result;
+            } catch (e) {
+                loading(false);
+                alert("การเชื่อมต่อขัดข้อง: " + e.message + "\n(กรุณาลองใหม่ หรือเช็คอินเทอร์เน็ต)");
+                console.error(e);
+                return null;
+            }
+        }
+
+        // --- 1. Report Functions ---
+        function getGPS() {
+            if(!navigator.geolocation) return alert("Browser ของคุณไม่รองรับ หรือปิด GPS อยู่");
+            loading(true);
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    loading(false);
+                    document.getElementById('mapLink').value = `http://googleusercontent.com/maps.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                }, 
+                err => { 
+                    loading(false); 
+                    alert("ไม่สามารถดึงพิกัดได้ กรุณากดอนุญาตให้เข้าถึงตำแหน่ง"); 
+                },
+                { timeout: 10000 }
+            );
+        }
+
+        async function submitReport(e) {
+            e.preventDefault();
+            const form = e.target;
+            const payload = {
+                facility: form.facility.value,
+                mapLink: form.mapLink.value,
+                details: form.details.value,
+                reporter: form.reporter.value
+            };
+            
+            const res = await callAPI('submit', payload);
+            
+            if(res && res.success) {
+                localStorage.setItem('reporterName', payload.reporter);
+                alert("✅ บันทึกข้อมูลสำเร็จ!\nรหัสเรื่องของคุณคือ: " + res.id);
+                form.reset();
+                showPage('home');
+            }
+        }
+
+        // --- 2. Track & Search Functions ---
+        async function doSearch() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            if(!q) return alert("กรุณากรอกคำค้นหา");
+
+            // ดึงข้อมูลทั้งหมดมา Filter ฝั่ง Client (เร็วและง่ายกว่าสำหรับข้อมูลหลักพัน)
+            const res = await callAPI('getAll'); 
+            if(!res) return;
+            
+            const results = document.getElementById('trackResults');
+            results.innerHTML = "";
+            
+            const filtered = res.filter(r => 
+                String(r.id).toLowerCase().includes(q) || 
+                String(r.reporter).toLowerCase().includes(q)
+            );
+
+            if(filtered.length === 0) {
+                results.innerHTML = "<div class='text-center text-gray-500 mt-4 bg-white p-4 rounded'>ไม่พบข้อมูล</div>";
+                return;
+            }
+
+            filtered.forEach(item => {
+                let statusStyle = "bg-yellow-100 text-yellow-800 border-yellow-200";
+                if(item.status.includes("รับเรื่อง")) statusStyle = "bg-blue-100 text-blue-800 border-blue-200";
+                if(item.status.includes("เสร็จสิ้น")) statusStyle = "bg-green-100 text-green-800 border-green-200";
+                if(item.status.includes("ยกเลิก")) statusStyle = "bg-red-100 text-red-800 border-red-200";
+                
+                results.innerHTML += `
+                    <div class="bg-white p-4 rounded-lg shadow border-l-4 ${statusStyle.split(' ')[2]} mb-2">
+                        <div class="flex justify-between items-start font-bold mb-1">
+                            <span class="text-gray-800">${item.id}</span>
+                            <span class="text-xs px-2 py-1 rounded-full ${statusStyle}">${item.status}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 font-semibold mb-1">🏥 ${item.facility}</p>
+                        <p class="text-xs text-gray-500 mb-2">📅 ${new Date(item.timestamp).toLocaleDateString('th-TH')}</p>
+                        ${item.adminNote ? `<div class="mt-2 text-xs bg-gray-50 p-2 rounded text-gray-600 border border-gray-100"><strong>จนท.:</strong> ${item.adminNote}</div>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        // --- 3. Admin Functions ---
+        function checkAdmin() {
+            if(localStorage.getItem('isAdmin') === 'true') {
+                showPage('admin');
+                loadAdminData();
+                document.getElementById('logoutBtn').classList.remove('hidden');
+            } else {
+                showPage('login');
+            }
+        }
+
+        async function doLogin() {
+            const u = document.getElementById('u').value;
+            const p = document.getElementById('p').value;
+            const res = await callAPI('login', { user: u, pass: p });
+            if(res && res.success) {
+                localStorage.setItem('isAdmin', 'true');
+                document.getElementById('u').value = ""; 
+                document.getElementById('p').value = "";
+                checkAdmin();
+            } else {
+                alert("❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+            }
+        }
+
+        function doLogout() {
+            if(confirm("ต้องการออกจากระบบ?")) {
+                localStorage.removeItem('isAdmin');
+                location.reload();
+            }
+        }
+
+        async function loadAdminData() {
+            const list = document.getElementById('adminList');
+            list.innerHTML = "<p class='text-center text-gray-400'>กำลังโหลดข้อมูล...</p>";
+            
+            const res = await callAPI('getAll');
+            if(!res) {
+                 list.innerHTML = "<p class='text-center text-red-400'>โหลดข้อมูลล้มเหลว</p>";
+                 return;
+            }
+
+            list.innerHTML = "";
+            if(res.length === 0) list.innerHTML = "<p class='text-center text-gray-400'>ยังไม่มีรายการแจ้งเหตุ</p>";
+            
+            res.forEach(item => {
+                const now = new Date();
+                const reportDate = new Date(item.timestamp);
+                const diffTime = Math.abs(now - reportDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                // Logic 14 วัน (Red Card)
+                const isRed = (diffDays > 14 && item.status !== 'เสร็จสิ้น' && item.status !== 'ยกเลิก');
+                const borderClass = isRed ? 'border-2 border-red-500 bg-red-50' : 'border border-gray-200 bg-white';
+                const alertBadge = isRed ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded ml-2 animate-pulse">! เกิน 14 วัน</span>' : '';
+
+                // ปุ่ม Action ตามสถานะ
+                let actionBtns = "";
+                if(item.status === 'รอรับเรื่อง') {
+                    actionBtns = `
+                        <div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <button onclick="updateStatus(${item.rowIndex}, 'รับเรื่องแล้ว')" class="flex-1 bg-blue-500 text-white py-1.5 rounded text-xs font-bold hover:bg-blue-600">รับเรื่อง</button>
+                            <button onclick="updateStatus(${item.rowIndex}, 'ยกเลิก')" class="flex-1 bg-red-500 text-white py-1.5 rounded text-xs font-bold hover:bg-red-600">ยกเลิก</button>
+                        </div>`;
+                } else if(item.status === 'รับเรื่องแล้ว') {
+                    actionBtns = `
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <button onclick="updateStatus(${item.rowIndex}, 'เสร็จสิ้น')" class="w-full bg-green-500 text-white py-1.5 rounded text-xs font-bold hover:bg-green-600">บันทึกเสร็จสิ้น</button>
+                        </div>`;
+                }
+
+                list.innerHTML += `
+                    <div class="p-4 rounded-lg shadow-sm ${borderClass} relative">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg text-gray-800">${item.id} ${alertBadge}</h4>
+                            <span class="text-xs text-gray-500">${reportDate.toLocaleDateString('th-TH')}</span>
+                        </div>
+                        <div class="text-sm space-y-1 text-gray-700">
+                             <p><span class="font-semibold">ที่ไหน:</span> ${item.facility}</p>
+                             <p><span class="font-semibold">ผู้แจ้ง:</span> ${item.reporter}</p>
+                             <div class="bg-white/50 p-2 rounded border border-gray-200 mt-1 text-xs text-gray-600">${item.details}</div>
+                             <a href="${item.mapLink}" target="_blank" class="text-blue-600 text-xs underline inline-flex items-center gap-1 mt-1 hover:text-blue-800">
+                                <span class="material-icons text-[14px]">map</span> ดูแผนที่ใน Google Map
+                             </a>
+                        </div>
+                        <div class="absolute top-4 right-4 text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">${item.status}</div>
+                        ${actionBtns}
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(row, status) {
+            let note = "";
+            if(status === 'ยกเลิก') {
+                 note = prompt("กรุณาระบุเหตุผลที่ยกเลิก:");
+                 if(note === null) return; // กด Cancel
+            } else if(status === 'เสร็จสิ้น') {
+                 note = prompt("บันทึกการดำเนินการเสร็จสิ้น (ถ้ามี):", "ดำเนินการเรียบร้อยแล้ว");
+                 if(note === null) return;
+            }
+
+            const res = await callAPI('update', { rowIndex: row, status: status, note: note });
+            if(res && res.success) {
+                alert("✅ อัปเดตสถานะเรียบร้อย");
+                loadAdminData();
+            }
+        }
+
+        // --- Init ---
+        window.addEventListener('load', () => {
+            if(localStorage.getItem('reporterName')) {
+                document.getElementById('reporterName').value = localStorage.getItem('reporterName');
+            }
+        });
+    </script>
+</body>
+</html>
