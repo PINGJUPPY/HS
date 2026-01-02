@@ -30,7 +30,6 @@
       }
       .btn-gold:hover { background-color: var(--dark-gold); color: white; }
       
-      /* Card Styles */
       .custom-card {
         border: none;
         border-radius: 15px;
@@ -38,21 +37,16 @@
         transition: transform 0.2s;
         margin-bottom: 15px;
         background: white;
+        cursor: pointer;
       }
       .custom-card:hover { transform: translateY(-5px); }
+      
+      /* Card Alert Style */
       .card-red-alert {
         border-left: 5px solid #dc3545;
         background-color: #fff5f5;
-        animation: pulse 2s infinite;
       }
       
-      @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-      }
-
-      /* Navigation */
       .nav-pills .nav-link.active {
         background-color: var(--primary-purple);
         color: var(--gold);
@@ -61,17 +55,33 @@
         color: var(--primary-purple);
       }
       
-      /* Loading Overlay */
       #loading {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(255,255,255,0.8); z-index: 9999;
         display: none; justify-content: center; align-items: center;
+      }
+
+      /* Timeline Style in Modal */
+      .timeline-box {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-size: 0.9rem;
+        border: 1px solid #ddd;
+      }
+      .timeline-item {
+        margin-bottom: 8px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 5px;
       }
     </style>
 </head>
 <body>
 
     <script>
+        // *** ใส่ URL Web App ของคุณที่นี่ ***
         const API_URL = "https://script.google.com/macros/s/AKfycbzM51QS8jSNvoKTf2grZSdjro7MM13kcHgL8yhSDxTWEjGD0Bl3htO9gzA1f5IQMts/exec"; 
     </script>
 
@@ -92,7 +102,6 @@
     </div>
 
     <div id="app-container" class="d-none">
-      
       <nav class="navbar navbar-expand-lg bg-purple navbar-dark sticky-top shadow-sm">
         <div class="container-fluid">
           <a class="navbar-brand fw-bold text-gold" href="#" onclick="location.reload()">Health Report</a>
@@ -102,16 +111,17 @@
 
       <div class="container mt-3">
         <ul class="nav nav-pills nav-fill mb-3 bg-white p-2 rounded shadow-sm" id="mainTab" role="tablist">
-          <li class="nav-item user-only"><a class="nav-link active" onclick="showTab('tab-report')"><i class="fas fa-file-medical"></i> รายงานข้อมูล</a></li>
-          <li class="nav-item user-only"><a class="nav-link" onclick="showTab('tab-track')"><i class="fas fa-search"></i> ติดตามเรื่อง</a></li>
+          <li class="nav-item user-only"><a class="nav-link active" onclick="showTab('tab-report')"><i class="fas fa-file-medical"></i> รายงาน</a></li>
+          <li class="nav-item user-only"><a class="nav-link" onclick="showTab('tab-track')"><i class="fas fa-search"></i> ติดตาม</a></li>
           
           <li class="nav-item admin-only d-none"><a class="nav-link" onclick="showTab('tab-admin-receive')"><i class="fas fa-inbox"></i> รับรายงาน</a></li>
           <li class="nav-item admin-only d-none"><a class="nav-link" onclick="showTab('tab-admin-work')"><i class="fas fa-tools"></i> ติดตามงาน</a></li>
+          <li class="nav-item admin-only d-none"><a class="nav-link" onclick="showTab('tab-admin-finish')"><i class="fas fa-check-circle"></i> เสร็จสิ้น</a></li>
+          
           <li class="nav-item admin-only d-none"><a class="nav-link" onclick="showTab('tab-admin-dash')"><i class="fas fa-chart-pie"></i> สรุปผล</a></li>
         </ul>
 
         <div class="tab-content">
-          
           <div id="tab-report" class="tab-pane fade show active">
             <div class="card custom-card p-4">
               <h4 class="text-purple mb-3">แบบฟอร์มรายงาน</h4>
@@ -119,65 +129,57 @@
                 <div class="mb-3">
                   <label>ชื่อสถานบริการ</label>
                   <input type="text" class="form-control" name="facilityName" required list="facilityList">
-                   <datalist id="facilityList">
-                      </datalist>
+                   <datalist id="facilityList"></datalist>
                 </div>
                 <div class="mb-3">
                   <label>ตำแหน่ง (GPS)</label>
                   <div class="input-group">
-                    <input type="text" class="form-control" id="locationUrl" name="locationUrl" placeholder="กดปุ่มเพื่อระบุพิกัด" readonly required>
-                    <button type="button" class="btn btn-info text-white" onclick="getGPS()"><i class="fas fa-map-marker-alt"></i> ระบุพิกัด</button>
+                    <input type="text" class="form-control" id="locationUrl" name="locationUrl" placeholder="ระบุพิกัด" readonly required>
+                    <button type="button" class="btn btn-info text-white" onclick="getGPS()"><i class="fas fa-map-marker-alt"></i> พิกัด</button>
                   </div>
-                  <small class="text-muted">หาก GPS ไม่ขึ้น ให้พิมพ์จุดสังเกตในช่องรายละเอียด</small>
                 </div>
                 <div class="mb-3">
-                  <label>รายละเอียดรายงาน</label>
+                  <label>รายละเอียด</label>
                   <textarea class="form-control" name="reportDetails" rows="3" required></textarea>
                 </div>
                 <div class="mb-3">
-                  <label>ชื่อ-สกุล ผู้รายงาน</label>
+                  <label>ผู้รายงาน</label>
                   <input type="text" class="form-control" id="reporterName" name="reporterName" required>
                 </div>
-                <button type="submit" class="btn btn-purple w-100 py-2 bg-purple">ยืนยันรายงาน</button>
+                <button type="submit" class="btn btn-purple w-100 py-2 bg-purple">ยืนยัน</button>
               </form>
             </div>
           </div>
 
           <div id="tab-track" class="tab-pane fade">
             <div class="input-group mb-3">
-              <input type="text" class="form-control" id="searchKeyword" placeholder="ระบุเลข ID หรือ ชื่อผู้รายงาน">
+              <input type="text" class="form-control" id="searchKeyword" placeholder="ID หรือ ชื่อผู้รายงาน">
               <button class="btn btn-gold" onclick="doSearch()">ค้นหา</button>
             </div>
             <div id="search-results"></div>
           </div>
 
           <div id="tab-admin-receive" class="tab-pane fade">
-             <h5 class="text-purple">รายการรอรับเรื่อง (สถานะ: รายงานแล้ว)</h5>
+             <h5 class="text-purple">รอรับเรื่อง</h5>
              <div id="admin-receive-list">Loading...</div>
           </div>
 
           <div id="tab-admin-work" class="tab-pane fade">
-             <h5 class="text-purple">กำลังดำเนินการ (สถานะ: รับเรื่องแล้ว)</h5>
+             <h5 class="text-purple">กำลังดำเนินการ</h5>
              <div id="admin-work-list">Loading...</div>
+          </div>
+
+          <div id="tab-admin-finish" class="tab-pane fade">
+             <h5 class="text-success">งานที่เสร็จสิ้นแล้ว</h5>
+             <div id="admin-finish-list">Loading...</div>
           </div>
 
           <div id="tab-admin-dash" class="tab-pane fade">
              <div class="row">
-               <div class="col-md-6 mb-3">
-                 <div class="card custom-card p-3">
-                   <h6>สัดส่วนสถานะการรายงาน</h6>
-                   <div id="chart_status" style="width:100%; height:300px;"></div>
-                 </div>
-               </div>
-               <div class="col-md-6 mb-3">
-                 <div class="card custom-card p-3">
-                   <h6>Top 5 สถานบริการที่ถูกรายงาน</h6>
-                   <div id="chart_top5" style="width:100%; height:300px;"></div>
-                 </div>
-               </div>
+               <div class="col-md-6 mb-3"><div class="card custom-card p-3"><div id="chart_status" style="width:100%; height:300px;"></div></div></div>
+               <div class="col-md-6 mb-3"><div class="card custom-card p-3"><div id="chart_top5" style="width:100%; height:300px;"></div></div></div>
              </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -185,17 +187,12 @@
     <div class="modal fade" id="loginModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header bg-purple text-white">
-            <h5 class="modal-title">Admin Login</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
+          <div class="modal-header bg-purple text-white"><h5 class="modal-title">Admin Login</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
           <div class="modal-body">
             <input type="text" id="adminUser" class="form-control mb-2" placeholder="Username">
             <input type="password" id="adminPass" class="form-control mb-2" placeholder="Password">
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-gold" onclick="doLogin()">Login</button>
-          </div>
+          <div class="modal-footer"><button type="button" class="btn btn-gold" onclick="doLogin()">Login</button></div>
         </div>
       </div>
     </div>
@@ -204,24 +201,31 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header bg-purple text-white">
-            <h5 class="modal-title">จัดการรายงาน <span id="modal-id"></span></h5>
+            <h5 class="modal-title">จัดการ: <span id="modal-id"></span></h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             <p><strong>สถานที่:</strong> <span id="modal-facility"></span></p>
             <p><strong>รายละเอียด:</strong> <span id="modal-detail"></span></p>
             <p><strong>ผู้แจ้ง:</strong> <span id="modal-reporter"></span></p>
-            <p><strong>Map:</strong> <a href="#" id="modal-map" target="_blank">เปิดแผนที่</a></p>
+            <p><strong>แผนที่:</strong> <a href="#" id="modal-map" target="_blank">เปิดดู</a></p>
+            
             <hr>
-            <label>บันทึกการดำเนินการ/เหตุผล:</label>
-            <textarea class="form-control mb-2" id="modal-note" rows="3"></textarea>
+            <h6><i class="fas fa-history"></i> Timeline การดำเนินการ:</h6>
+            <div id="modal-timeline" class="timeline-box mb-3"></div>
+
+            <label>บันทึกเพิ่มเติม/การดำเนินการ:</label>
+            <textarea class="form-control mb-2" id="modal-note" rows="2" placeholder="ใส่รายละเอียดการดำเนินการ..."></textarea>
             
             <div id="action-buttons-receive" class="d-none">
-               <button class="btn btn-success w-100 mb-2" onclick="confirmAction('รับเรื่องแล้ว')">ยืนยันรับเรื่อง</button>
-               <button class="btn btn-danger w-100" onclick="confirmAction('ยกเลิก')">ไม่รับเรื่อง/ยกเลิก</button>
+               <button class="btn btn-success w-100 mb-2" onclick="confirmAction('รับเรื่องแล้ว')">รับเรื่อง</button>
+               <button class="btn btn-danger w-100" onclick="confirmAction('ยกเลิก')">ยกเลิก/ไม่รับ</button>
             </div>
             <div id="action-buttons-work" class="d-none">
                <button class="btn btn-success w-100" onclick="confirmAction('เสร็จสิ้น')">งานเสร็จสิ้น</button>
+            </div>
+             <div id="action-buttons-view" class="d-none">
+               <button class="btn btn-secondary w-100" data-bs-dismiss="modal">ปิด</button>
             </div>
             
             <input type="hidden" id="modal-rowIndex">
@@ -232,12 +236,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      // Global Variables
       var currentRole = ''; 
       var allAdminData = [];
       google.charts.load('current', {'packages':['corechart']});
 
-      // --- Core API Function (Fetch) ---
       async function callAPI(action, payload = {}) {
           document.getElementById('loading').style.display = 'flex';
           payload.action = action;
@@ -250,18 +252,15 @@
               document.getElementById('loading').style.display = 'none';
               return data;
           } catch (error) {
-              console.error('Error:', error);
               document.getElementById('loading').style.display = 'none';
-              alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+              alert('Connection Error');
               return null;
           }
       }
 
-      // --- Navigation Logic ---
       function showPage(pageId) {
         document.getElementById('page-landing').classList.add('d-none');
         document.getElementById('app-container').classList.remove('d-none');
-        
         if(pageId === 'page-report') {
           currentRole = 'user';
           document.querySelectorAll('.admin-only').forEach(el => el.classList.add('d-none'));
@@ -272,143 +271,78 @@
       }
 
       function showTab(tabId) {
-        document.querySelectorAll('.tab-pane').forEach(el => {
-          el.classList.remove('show', 'active');
-        });
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
         document.getElementById(tabId).classList.add('show', 'active');
-        
         document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
         event.target.classList.add('active');
-
-        if(tabId.startsWith('tab-admin')) {
-          loadAdminData();
-        }
+        if(tabId.startsWith('tab-admin')) loadAdminData();
       }
 
-      function logout() {
-        localStorage.removeItem('adminSession');
-        location.reload();
-      }
+      function logout() { localStorage.removeItem('adminSession'); location.reload(); }
 
-      // --- User Features ---
       function loadUserData() {
-        var savedName = localStorage.getItem('reporterName');
-        if(savedName) document.getElementById('reporterName').value = savedName;
-        
-        var savedFacilities = JSON.parse(localStorage.getItem('savedFacilities') || '[]');
-        var dataList = document.getElementById('facilityList');
-        dataList.innerHTML = '';
-        savedFacilities.forEach(fac => {
-           var option = document.createElement('option');
-           option.value = fac;
-           dataList.appendChild(option);
+        if(localStorage.getItem('reporterName')) document.getElementById('reporterName').value = localStorage.getItem('reporterName');
+        JSON.parse(localStorage.getItem('savedFacilities') || '[]').forEach(fac => {
+           let opt = document.createElement('option'); opt.value = fac; document.getElementById('facilityList').appendChild(opt);
         });
       }
 
-      // *** ฟังก์ชันแก้ไขแล้ว: ระบุพิกัด GPS ***
       function getGPS() {
         if (navigator.geolocation) {
           document.getElementById('loading').style.display = 'flex';
           navigator.geolocation.getCurrentPosition(
-            (position) => {
-              var lat = position.coords.latitude;
-              var long = position.coords.longitude;
-              // ใช้ Format มาตรฐานของ Google Maps
-              var link = `https://www.google.com/maps?q=${lat},${long}`;
-              
-              document.getElementById('locationUrl').value = link;
+            (p) => {
+              document.getElementById('locationUrl').value = `https://www.google.com/maps?q=$${p.coords.latitude},${p.coords.longitude}`;
               document.getElementById('loading').style.display = 'none';
             },
-            (error) => {
-              console.error(error);
-              alert("ไม่สามารถดึงพิกัดได้ (กรุณาเปิด GPS หรือกดอนุญาตสิทธิ์ Location)");
-              document.getElementById('loading').style.display = 'none';
-            }
+            () => { alert("Error GPS"); document.getElementById('loading').style.display = 'none'; }
           );
-        } else {
-          alert("เบราว์เซอร์นี้ไม่รองรับ GPS");
-        }
+        } else alert("No GPS support");
       }
 
       async function submitForm(e) {
         e.preventDefault();
         var form = document.getElementById('form-report');
-        
-        // Save LocalStorage
         localStorage.setItem('reporterName', form.reporterName.value);
-        var savedFacilities = JSON.parse(localStorage.getItem('savedFacilities') || '[]');
-        if(!savedFacilities.includes(form.facilityName.value)){
-          savedFacilities.push(form.facilityName.value);
-          localStorage.setItem('savedFacilities', JSON.stringify(savedFacilities));
-        }
+        let saved = JSON.parse(localStorage.getItem('savedFacilities') || '[]');
+        if(!saved.includes(form.facilityName.value)) { saved.push(form.facilityName.value); localStorage.setItem('savedFacilities', JSON.stringify(saved)); }
 
-        // Call API
         const res = await callAPI('submitReport', {
           facilityName: form.facilityName.value,
           locationUrl: form.locationUrl.value,
           reportDetails: form.reportDetails.value,
           reporterName: form.reporterName.value
         });
-
-        if(res && res.status === 'success') {
-           alert("บันทึกข้อมูลสำเร็จ รหัสเรื่อง: " + res.id);
-           form.reset();
-        }
+        if(res && res.status === 'success') { alert("สำเร็จ รหัส: " + res.id); form.reset(); }
       }
 
       async function doSearch() {
-        var keyword = document.getElementById('searchKeyword').value;
-        if(!keyword) return;
-        
-        const results = await callAPI('searchReport', { keyword: keyword });
-        
+        var k = document.getElementById('searchKeyword').value;
+        if(!k) return;
+        const res = await callAPI('searchReport', { keyword: k });
         var html = '';
-        if(!results || results.length === 0) {
-            html = '<div class="alert alert-warning">ไม่พบข้อมูล</div>';
-        } else {
-            results.forEach(r => {
-               var colorClass = 'bg-secondary';
-               if(r.status === 'รายงานแล้ว') colorClass = 'bg-warning text-dark';
-               if(r.status === 'รับเรื่องแล้ว') colorClass = 'bg-info text-dark';
-               if(r.status === 'เสร็จสิ้น') colorClass = 'bg-success';
-               
-               html += `<div class="card custom-card p-3">
-                  <div class="d-flex justify-content-between">
-                     <strong>${r.id}</strong>
-                     <span class="badge ${colorClass}">${r.status}</span>
-                  </div>
-                  <p class="mb-0 text-muted small">${r.timestamp}</p>
-                  <p class="mb-0">${r.facility}</p>
-               </div>`;
+        if(!res || res.length === 0) html = '<div class="alert alert-warning">ไม่พบข้อมูล</div>';
+        else {
+            res.forEach(r => {
+               let c = r.status==='รายงานแล้ว'?'bg-warning':r.status==='รับเรื่องแล้ว'?'bg-info':'bg-success';
+               html += `<div class="card custom-card p-3"><div class="d-flex justify-content-between"><strong>${r.id}</strong><span class="badge ${c}">${r.status}</span></div><p class="mb-0 small">${r.timestamp}</p><p class="mb-0">${r.facility}</p></div>`;
             });
         }
         document.getElementById('search-results').innerHTML = html;
       }
 
-      // --- Admin Features ---
       function checkAuthAndShow() {
-        var session = localStorage.getItem('adminSession');
-        if (session) {
-          enterAdminMode();
-        } else {
-          var myModal = new bootstrap.Modal(document.getElementById('loginModal'));
-          myModal.show();
-        }
+        if (localStorage.getItem('adminSession')) enterAdminMode();
+        else new bootstrap.Modal(document.getElementById('loginModal')).show();
       }
 
       async function doLogin() {
-        var u = document.getElementById('adminUser').value;
-        var p = document.getElementById('adminPass').value;
-        
-        const res = await callAPI('loginUser', { username: u, password: p });
-        
+        const res = await callAPI('loginUser', { username: document.getElementById('adminUser').value, password: document.getElementById('adminPass').value });
         if(res && res.status === 'success') {
           localStorage.setItem('adminSession', res.name);
           document.querySelector('#loginModal .btn-close').click();
           enterAdminMode();
-        } else {
-          alert("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
-        }
+        } else alert("Login Failed");
       }
 
       function enterAdminMode() {
@@ -422,53 +356,42 @@
 
       async function loadAdminData() {
          const data = await callAPI('getAdminData');
-         if(data) {
-            allAdminData = data;
-            renderAdminCards();
-            renderDashboard();
-         }
+         if(data) { allAdminData = data; renderAdminCards(); renderDashboard(); }
       }
 
       function renderAdminCards() {
-         var receiveHtml = '';
-         var workHtml = '';
+         var rxHtml = '', wkHtml = '', finHtml = '';
          var today = new Date();
 
          allAdminData.forEach(item => {
-            // Check 14 Days alert
-            // แปลงวันที่จาก String กลับเป็น Date Object เพื่อคำนวณ
+            // คำนวณวันล่าช้า (แก้ไขแล้ว)
             var reportedDate = new Date(item.timestamp);
-            if(isNaN(reportedDate)) reportedDate = new Date(); // Fallback
-
-            var diffTime = Math.abs(today - reportedDate);
+            if(isNaN(reportedDate)) reportedDate = new Date();
+            var diffTime = today.getTime() - reportedDate.getTime();
             var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            var isAlert = diffDays > 14;
-            var alertClass = isAlert ? 'card-red-alert' : '';
+            var isAlert = (diffDays > 14); // ต้องมากกว่า 0 และเกิน 14 วัน
+            
+            var cardClass = (isAlert && item.status !== 'เสร็จสิ้น') ? 'card-red-alert' : '';
 
             var card = `
-              <div class="card custom-card p-3 ${alertClass}" onclick="openActionModal(${item.rowIndex})">
-                 <div class="d-flex justify-content-between">
-                    <span class="fw-bold text-purple">${item.id}</span>
-                    <small class="text-muted">${item.timestamp}</small>
-                 </div>
+              <div class="card custom-card p-3 ${cardClass}" onclick="openActionModal(${item.rowIndex})">
+                 <div class="d-flex justify-content-between"><span class="fw-bold text-purple">${item.id}</span><small class="text-muted">${item.timestamp}</small></div>
                  <h6 class="mt-2">${item.facility}</h6>
                  <p class="small text-truncate">${item.details}</p>
                  <div class="d-flex justify-content-between align-items-center">
                     <span class="badge bg-light text-dark border">ผู้แจ้ง: ${item.reporter}</span>
-                    ${isAlert ? '<span class="badge bg-danger"><i class="fas fa-exclamation-circle"></i> ล่าช้า 14+ วัน</span>' : ''}
+                    ${(isAlert && item.status !== 'เสร็จสิ้น') ? '<span class="badge bg-danger">ล่าช้า 14+ วัน</span>' : ''}
                  </div>
-              </div>
-            `;
+              </div>`;
 
-            if(item.status === 'รายงานแล้ว') {
-               receiveHtml += card;
-            } else if (item.status === 'รับเรื่องแล้ว') {
-               workHtml += card;
-            }
+            if(item.status === 'รายงานแล้ว') rxHtml += card;
+            else if (item.status === 'รับเรื่องแล้ว') wkHtml += card;
+            else if (item.status === 'เสร็จสิ้น') finHtml += card; // ใส่ลง Tab เสร็จสิ้น
          });
 
-         document.getElementById('admin-receive-list').innerHTML = receiveHtml || '<p class="text-center text-muted">ไม่มีรายการ</p>';
-         document.getElementById('admin-work-list').innerHTML = workHtml || '<p class="text-center text-muted">ไม่มีรายการ</p>';
+         document.getElementById('admin-receive-list').innerHTML = rxHtml || '<p class="text-center text-muted">ว่าง</p>';
+         document.getElementById('admin-work-list').innerHTML = wkHtml || '<p class="text-center text-muted">ว่าง</p>';
+         document.getElementById('admin-finish-list').innerHTML = finHtml || '<p class="text-center text-muted">ว่าง</p>';
       }
 
       function openActionModal(rowIndex) {
@@ -480,19 +403,34 @@
          document.getElementById('modal-detail').innerText = item.details;
          document.getElementById('modal-reporter').innerText = item.reporter;
          document.getElementById('modal-map').href = item.location;
-         document.getElementById('modal-note').value = item.adminNote;
          document.getElementById('modal-rowIndex').value = item.rowIndex;
-
-         var btnReceive = document.getElementById('action-buttons-receive');
-         var btnWork = document.getElementById('action-buttons-work');
          
-         btnReceive.classList.add('d-none');
-         btnWork.classList.add('d-none');
+         // แสดง Timeline (แปลง \n เป็น <br>)
+         // ถ้าไม่มีข้อมูลเก่า ให้แสดงว่ายังไม่มีบันทึก
+         var noteText = item.adminNote ? item.adminNote.replace(/\n/g, '<br>') : '<span class="text-muted">ยังไม่มีบันทึก</span>';
+         document.getElementById('modal-timeline').innerHTML = noteText;
+         
+         // Clear Textarea input
+         document.getElementById('modal-note').value = '';
+
+         // จัดการปุ่ม
+         var btnRx = document.getElementById('action-buttons-receive');
+         var btnWk = document.getElementById('action-buttons-work');
+         var btnView = document.getElementById('action-buttons-view');
+         
+         btnRx.classList.add('d-none');
+         btnWk.classList.add('d-none');
+         btnView.classList.add('d-none');
+         document.getElementById('modal-note').style.display = 'block';
 
          if(item.status === 'รายงานแล้ว') {
-            btnReceive.classList.remove('d-none');
+            btnRx.classList.remove('d-none');
          } else if (item.status === 'รับเรื่องแล้ว') {
-            btnWork.classList.remove('d-none');
+            btnWk.classList.remove('d-none');
+         } else if (item.status === 'เสร็จสิ้น' || item.status === 'ยกเลิก') {
+            // ถ้าเสร็จแล้ว ดูได้อย่างเดียว ซ่อนช่องกรอก
+            btnView.classList.remove('d-none');
+            document.getElementById('modal-note').style.display = 'none';
          }
 
          new bootstrap.Modal(document.getElementById('actionModal')).show();
@@ -501,12 +439,14 @@
       async function confirmAction(newStatus) {
          var rowIndex = document.getElementById('modal-rowIndex').value;
          var note = document.getElementById('modal-note').value;
+         var adminName = localStorage.getItem('adminSession') || 'Admin'; // เอาชื่อคนล็อกอิน
          
          if(confirm('ยืนยันเปลี่ยนสถานะเป็น "' + newStatus + '" ?')) {
              const res = await callAPI('updateReportStatus', {
                  rowIndex: rowIndex,
                  newStatus: newStatus,
-                 adminNote: note
+                 adminNote: note,
+                 adminName: adminName // ส่งชื่อแอดมินไปบันทึก Log
              });
              if(res && res.status === 'success') {
                  document.querySelector('#actionModal .btn-close').click();
@@ -516,39 +456,17 @@
       }
 
       function renderDashboard() {
-         var statusCount = {};
-         var facilityCount = {};
-         
-         allAdminData.forEach(d => {
-            statusCount[d.status] = (statusCount[d.status] || 0) + 1;
-            facilityCount[d.facility] = (facilityCount[d.facility] || 0) + 1;
-         });
+         var statusCount = {}, facilityCount = {};
+         allAdminData.forEach(d => { statusCount[d.status] = (statusCount[d.status] || 0) + 1; facilityCount[d.facility] = (facilityCount[d.facility] || 0) + 1; });
 
-         // Pie Chart
          var pieData = [['Status', 'Count']];
          for(var s in statusCount) pieData.push([s, statusCount[s]]);
-         var wrapper1 = new google.visualization.ChartWrapper({
-            chartType: 'PieChart',
-            dataTable: pieData,
-            options: { 'title': 'สถานะเรื่องร้องเรียน', 'colors': ['#ffc107', '#17a2b8', '#28a745', '#dc3545'] },
-            containerId: 'chart_status'
-         });
-         wrapper1.draw();
+         new google.visualization.ChartWrapper({ chartType: 'PieChart', dataTable: pieData, options: { 'title': 'สถานะ', 'colors': ['#ffc107', '#17a2b8', '#28a745', '#dc3545'] }, containerId: 'chart_status' }).draw();
 
-         // Bar Chart
-         var sortedFacilities = Object.keys(facilityCount).map(key => [key, facilityCount[key]]);
-         sortedFacilities.sort((a, b) => b[1] - a[1]);
-         var top5 = sortedFacilities.slice(0, 5);
+         var sortedFac = Object.keys(facilityCount).map(key => [key, facilityCount[key]]).sort((a, b) => b[1] - a[1]).slice(0, 5);
          var barData = [['Facility', 'Count', { role: 'style' }]];
-         top5.forEach(f => barData.push([f[0], f[1], 'color: #6A1B9A']));
-         
-         var wrapper2 = new google.visualization.ChartWrapper({
-            chartType: 'BarChart',
-            dataTable: barData,
-            options: { 'title': '5 อันดับสถานบริการที่ถูกรายงานสูงสุด', 'legend': { position: "none" } },
-            containerId: 'chart_top5'
-         });
-         wrapper2.draw();
+         sortedFac.forEach(f => barData.push([f[0], f[1], 'color: #6A1B9A']));
+         new google.visualization.ChartWrapper({ chartType: 'BarChart', dataTable: barData, options: { 'title': 'Top 5', 'legend': { position: "none" } }, containerId: 'chart_top5' }).draw();
       }
     </script>
 </body>
